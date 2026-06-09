@@ -14,37 +14,33 @@ from dataclasses import dataclass, field
 from typing import Deque
 
 
-# Random links opened on keyboard smash. Each (url, probability) pair is rolled
-# independently when a smash is detected; a link opens when random() < probability.
-RANDOM_LINKS: list[tuple[str, float]] = [
-    ("https://en.wikipedia.org/wiki/Keyboard", 0.35),
-    ("https://www.youtube.com/watch?v=jNQXAC9IVRw", 0.25),
-    ("https://example.com", 0.50),
-    ("https://en.wikipedia.org/wiki/Cat", 0.20),
-    ("https://github.com/explore", 0.15),
-    ("https://news.ycombinator.com", 0.30),
+# Links opened on keyboard smash. One link is chosen at random per smash.
+RANDOM_LINKS: list[str] = [
+    "https://en.wikipedia.org/wiki/Keyboard",
+    "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "https://example.com",
+    "https://en.wikipedia.org/wiki/Cat",
+    "https://github.com/explore",
+    "https://news.ycombinator.com",
 ]
 
 
-def open_random_links() -> list[str]:
-    """Open each configured link according to its independent random chance."""
-    opened: list[str] = []
-    for url, probability in RANDOM_LINKS:
-        if random.random() < probability:
-            webbrowser.open(url, new=2)
-            opened.append(url)
-    return opened
+def open_random_link() -> str:
+    """Pick and open a single random link from RANDOM_LINKS."""
+    url = random.choice(RANDOM_LINKS)
+    webbrowser.open(url, new=2)
+    return url
 
 
 @dataclass
 class SmashDetector:
     """Detect probable keyboard-smash events from keypress activity."""
 
-    simultaneous_keys: int = 4
-    simultaneous_window_seconds: float = 0.12
+    simultaneous_keys: int = 10
+    simultaneous_window_seconds: float = 0.1
     text_window_seconds: float = 2.0
     min_smash_text_length: int = 8
-    cooldown_seconds: float = 8.0
+    cooldown_seconds: float = 5.0
 
     press_timestamps: Deque[float] = field(default_factory=deque)
     typed_chars: Deque[tuple[float, str]] = field(default_factory=deque)
@@ -155,14 +151,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--simultaneous-keys",
         type=int,
-        default=4,
-        help="Number of rapid key presses that count as a smash (default: 4).",
+        default=10,
+        help="Number of rapid key presses that count as a smash (default: 10).",
     )
     parser.add_argument(
         "--simultaneous-window-ms",
         type=float,
-        default=120.0,
-        help="Window for rapid key presses in milliseconds (default: 120).",
+        default=100.0,
+        help="Window for rapid key presses in milliseconds (default: 100).",
     )
     parser.add_argument(
         "--text-window-seconds",
@@ -179,8 +175,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cooldown-seconds",
         type=float,
-        default=8.0,
-        help="Wait time between browser opens (default: 8.0).",
+        default=5.0,
+        help="Wait time between browser opens (default: 5.0).",
     )
     return parser.parse_args()
 
@@ -208,19 +204,17 @@ def main() -> int:
     if args.url:
         print(f"Will open: {args.url}")
     else:
-        print(f"Will randomly open from {len(RANDOM_LINKS)} configured links.")
+        print(f"Will randomly open one link from {len(RANDOM_LINKS)} configured URLs.")
 
     def trigger(reason: str) -> None:
         print(f"[{time.strftime('%H:%M:%S')}] {reason}. Opening browser...")
         if args.url:
             webbrowser.open(args.url, new=2)
+            print(f"  Opened: {args.url}")
             return
 
-        opened = open_random_links()
-        if opened:
-            print(f"  Opened {len(opened)} link(s): {', '.join(opened)}")
-        else:
-            print("  No links opened this time (random rolls missed).")
+        url = open_random_link()
+        print(f"  Opened: {url}")
 
     def on_press(key: object) -> None:
         now = time.monotonic()
