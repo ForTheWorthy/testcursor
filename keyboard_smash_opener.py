@@ -14,8 +14,9 @@ from dataclasses import dataclass, field
 from typing import Deque
 
 
-# Links opened on keyboard smash. One link is chosen at random per smash.
-RANDOM_LINKS: list[tuple[str, float]] = [
+# Links opened on keyboard smash. Add as many entries as you like.
+# Each entry is either a (url, weight) tuple or a plain url string (weight 1.0).
+RANDOM_LINKS: list[str | tuple[str, float]] = [
     ("https://www.youtube.com/watch?v=9npgsPOMa5Q", 0.35),
     ("https://www.youtube.com/watch?v=2lR4xjvVMLE", 0.25),
     ("https://www.youtube.com/watch?v=iI-GoU3NCxc", 0.50),
@@ -25,9 +26,23 @@ RANDOM_LINKS: list[tuple[str, float]] = [
 ]
 
 
-def open_random_link() -> str:
-    """Pick and open a single weighted-random link from RANDOM_LINKS."""
-    urls, weights = zip(*RANDOM_LINKS)
+def normalize_random_links(
+    links: list[str | tuple[str, float]],
+) -> list[tuple[str, float]]:
+    """Accept any number of url or (url, weight) entries."""
+    normalized: list[tuple[str, float]] = []
+    for entry in links:
+        if isinstance(entry, str):
+            normalized.append((entry, 1.0))
+        else:
+            url, weight = entry
+            normalized.append((url, max(0.0, weight)))
+    return normalized
+
+
+def open_random_link(links: list[tuple[str, float]]) -> str:
+    """Pick and open a single weighted-random link."""
+    urls, weights = zip(*links)
     url = random.choices(urls, weights=weights, k=1)[0]
     webbrowser.open(url, new=2)
     return url
@@ -37,28 +52,40 @@ def open_random_link() -> str:
 class SmashDetector:
     """Detect probable keyboard-smash events from keypress activity."""
 
-    simultaneous_keys: int = 10
-    simultaneous_window_seconds: float = 0.1
+    simultaneous_keys: int = 20
+    simultaneous_window_seconds: float = 0.08
     text_window_seconds: float = 2.0
     min_smash_text_length: int = 8
     cooldown_seconds: float = 5.0
+    repeat_filter_seconds: float = 0.05
+    min_unique_key_ratio: float = 0.4
 
-    press_timestamps: Deque[float] = field(default_factory=deque)
+    press_events: Deque[tuple[float, str]] = field(default_factory=deque)
     typed_chars: Deque[tuple[float, str]] = field(default_factory=deque)
     cooldown_until: float = 0.0
 
-    def process_key_press(self, now: float) -> str | None:
+    def process_key_press(self, key_id: str, now: float) -> str | None:
         """Check if rapid multi-key presses indicate a smash."""
-        self.press_timestamps.append(now)
+        if self._is_repeat_press(key_id, now):
+            return None
+
+        self.press_events.append((now, key_id))
         self._trim_old_presses(now)
 
-        if len(self.press_timestamps) >= self.simultaneous_keys:
-            if self._ready_to_trigger(now):
-                self.cooldown_until = now + self.cooldown_seconds
-                return (
-                    f"Detected {len(self.press_timestamps)} presses within "
-                    f"{self.simultaneous_window_seconds:.2f}s"
-                )
+        if len(self.press_events) < self.simultaneous_keys:
+            return None
+
+        unique_keys = len({key for _, key in self.press_events})
+        if unique_keys < self._min_unique_keys():
+            return None
+
+        if self._ready_to_trigger(now):
+            self.cooldown_until = now + self.cooldown_seconds
+            return (
+                f"Detected {len(self.press_events)} distinct presses "
+                f"({unique_keys} unique keys) within "
+                f"{self.simultaneous_window_seconds:.2f}s"
+            )
         return None
 
     def process_text_character(self, char: str, now: float) -> str | None:
@@ -82,10 +109,24 @@ class SmashDetector:
     def _ready_to_trigger(self, now: float) -> bool:
         return now >= self.cooldown_until
 
+    def _min_unique_keys(self) -> int:
+        return max(4, int(self.simultaneous_keys * self.min_unique_key_ratio))
+
+    def _is_repeat_press(self, key_id: str, now: float) -> bool:
+        """Ignore OS key-repeat events from holding a single key down."""
+        if not self.press_events:
+            return False
+
+        last_time, last_key = self.press_events[-1]
+        if key_id != last_key:
+            return False
+
+        return now - last_time < self.repeat_filter_seconds
+
     def _trim_old_presses(self, now: float) -> None:
         cutoff = now - self.simultaneous_window_seconds
-        while self.press_timestamps and self.press_timestamps[0] < cutoff:
-            self.press_timestamps.popleft()
+        while self.press_events and self.press_events[0][0] < cutoff:
+            self.press_events.popleft()
 
     def _trim_old_text(self, now: float) -> None:
         cutoff = now - self.text_window_seconds
@@ -100,13 +141,15 @@ class SmashDetector:
         return tokens[-1].strip(string.punctuation).lower()
 
     @staticmethod
-    def _looks_like_smash_text(token: str) -> bool:
-        letters = [ch for ch in token if ch.isalpha()]
-        if not letters:
-            return False
+    def _is_repeated_character_token(token: str) -> bool:
+        """True for held-key output like www... or aaa..."""
+        if len(token) < 2:
+            return True
 
-        vowel_count = sum(ch in "aeiou" for ch in letters)
-        vowel_ratio = vowel_count / len(letters)
+        counts = Counter(token)
+        _char, top_count = counts.most_common(1)[0]
+        if top_count / len(token) >= 0.75:
+            return True
 
         max_repeat = 1
         current_repeat = 1
@@ -116,12 +159,22 @@ class SmashDetector:
                 max_repeat = max(max_repeat, current_repeat)
             else:
                 current_repeat = 1
+        return max_repeat >= 4
 
+    @staticmethod
+    def _looks_like_smash_text(token: str) -> bool:
+        if SmashDetector._is_repeated_character_token(token):
+            return False
+
+        letters = [ch for ch in token if ch.isalpha()]
+        if not letters:
+            return False
+
+        vowel_count = sum(ch in "aeiou" for ch in letters)
+        vowel_ratio = vowel_count / len(letters)
         entropy = SmashDetector._shannon_entropy(token)
 
         # Heuristics chosen to catch common smash patterns while avoiding words.
-        if max_repeat >= 4:
-            return True
         if vowel_ratio < 0.2 and len(letters) >= 7:
             return True
         if entropy > 2.9 and vowel_ratio < 0.35 and len(letters) >= 8:
@@ -152,14 +205,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--simultaneous-keys",
         type=int,
-        default=10,
-        help="Number of rapid key presses that count as a smash (default: 10).",
+        default=20,
+        help="Number of rapid key presses that count as a smash (default: 20).",
     )
     parser.add_argument(
         "--simultaneous-window-ms",
         type=float,
-        default=100.0,
-        help="Window for rapid key presses in milliseconds (default: 100).",
+        default=80.0,
+        help="Window for rapid key presses in milliseconds (default: 80).",
     )
     parser.add_argument(
         "--text-window-seconds",
@@ -182,6 +235,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def key_id(key: object) -> str:
+    char = getattr(key, "char", None)
+    if isinstance(char, str) and char:
+        return char
+    return str(key)
+
+
 def main() -> int:
     args = parse_args()
     try:
@@ -191,6 +251,11 @@ def main() -> int:
             "Missing dependency: pynput. Install it with:\n"
             "  python3 -m pip install pynput"
         )
+        return 1
+
+    random_links = normalize_random_links(RANDOM_LINKS)
+    if not args.url and not random_links:
+        print("RANDOM_LINKS is empty. Add one or more (url, weight) entries.")
         return 1
 
     detector = SmashDetector(
@@ -205,7 +270,7 @@ def main() -> int:
     if args.url:
         print(f"Will open: {args.url}")
     else:
-        print(f"Will randomly open one link from {len(RANDOM_LINKS)} configured URLs.")
+        print(f"Will randomly open one link from {len(random_links)} configured URLs.")
 
     def trigger(reason: str) -> None:
         print(f"[{time.strftime('%H:%M:%S')}] {reason}. Opening browser...")
@@ -214,13 +279,13 @@ def main() -> int:
             print(f"  Opened: {args.url}")
             return
 
-        url = open_random_link()
+        url = open_random_link(random_links)
         print(f"  Opened: {url}")
 
     def on_press(key: object) -> None:
         now = time.monotonic()
 
-        reason = detector.process_key_press(now)
+        reason = detector.process_key_press(key_id(key), now)
         if reason:
             trigger(reason)
             return
