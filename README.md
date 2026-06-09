@@ -212,4 +212,27 @@ Use this checklist when starting a task in Cursor:
 - [ ] Ask Cursor to run focused checks.
 - [ ] Review the final diff before merging.
 
+## Appendix: Meeting Someone and Building a Healthy Relationship
+
+If your goal is to find a girlfriend, focus on becoming someone who can build a respectful, mutual relationship rather than trying to "win" someone over.
+
+Helpful steps:
+
+- Meet people through real interests, such as classes, clubs, volunteering, hobbies, local events, or friend groups.
+- Take care of your basics: hygiene, health, reliability, and emotional maturity all matter.
+- Practice friendly conversation without making every interaction romantic.
+- Show genuine curiosity by listening, asking thoughtful questions, and remembering what someone shares.
+- Be clear and respectful when asking someone out. A simple invitation is better than pressure or games.
+- Accept rejection gracefully. If someone is not interested, respect that answer and move on.
+- Build confidence through skills, friendships, and personal goals instead of depending on dating for self-worth.
+- Look for mutual effort. A healthy relationship should include respect, honesty, kindness, and shared interest.
+
+Example:
+
+```text
+I like talking with you. Would you like to get coffee with me this weekend?
+```
+
+Good relationships are based on consent, trust, and compatibility. The goal is not just to get a girlfriend, but to build a connection where both people feel valued.
+
 With clear context, small iterations, and focused validation, Cursor becomes a practical coding partner for learning, building, debugging, and maintaining software.
