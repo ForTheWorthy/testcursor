@@ -5,12 +5,35 @@ from __future__ import annotations
 
 import argparse
 import math
+import random
 import string
 import time
 import webbrowser
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from typing import Deque
+
+
+# Random links opened on keyboard smash. Each (url, probability) pair is rolled
+# independently when a smash is detected; a link opens when random() < probability.
+RANDOM_LINKS: list[tuple[str, float]] = [
+    ("https://en.wikipedia.org/wiki/Keyboard", 0.35),
+    ("https://www.youtube.com/watch?v=jNQXAC9IVRw", 0.25),
+    ("https://example.com", 0.50),
+    ("https://en.wikipedia.org/wiki/Cat", 0.20),
+    ("https://github.com/explore", 0.15),
+    ("https://news.ycombinator.com", 0.30),
+]
+
+
+def open_random_links() -> list[str]:
+    """Open each configured link according to its independent random chance."""
+    opened: list[str] = []
+    for url, probability in RANDOM_LINKS:
+        if random.random() < probability:
+            webbrowser.open(url, new=2)
+            opened.append(url)
+    return opened
 
 
 @dataclass
@@ -123,8 +146,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--url",
-        required=True,
-        help="URL to open when a keyboard smash is detected.",
+        default=None,
+        help=(
+            "Optional single URL to open on smash. "
+            "If omitted, links from RANDOM_LINKS in this file are opened randomly."
+        ),
     )
     parser.add_argument(
         "--simultaneous-keys",
@@ -179,11 +205,22 @@ def main() -> int:
     )
 
     print("Keyboard smash detector is running. Press Ctrl+C to stop.")
-    print(f"Will open: {args.url}")
+    if args.url:
+        print(f"Will open: {args.url}")
+    else:
+        print(f"Will randomly open from {len(RANDOM_LINKS)} configured links.")
 
     def trigger(reason: str) -> None:
         print(f"[{time.strftime('%H:%M:%S')}] {reason}. Opening browser...")
-        webbrowser.open(args.url, new=2)
+        if args.url:
+            webbrowser.open(args.url, new=2)
+            return
+
+        opened = open_random_links()
+        if opened:
+            print(f"  Opened {len(opened)} link(s): {', '.join(opened)}")
+        else:
+            print("  No links opened this time (random rolls missed).")
 
     def on_press(key: object) -> None:
         now = time.monotonic()
