@@ -15,19 +15,20 @@ from typing import Deque
 
 
 # Links opened on keyboard smash. One link is chosen at random per smash.
-RANDOM_LINKS: list[str] = [
-    "https://en.wikipedia.org/wiki/Keyboard",
-    "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-    "https://example.com",
-    "https://en.wikipedia.org/wiki/Cat",
-    "https://github.com/explore",
-    "https://news.ycombinator.com",
+RANDOM_LINKS: list[tuple[str, float]] = [
+    ("https://www.youtube.com/watch?v=9npgsPOMa5Q", 0.35),
+    ("https://www.youtube.com/watch?v=2lR4xjvVMLE", 0.25),
+    ("https://www.youtube.com/watch?v=iI-GoU3NCxc", 0.50),
+    ("https://www.youtube.com/watch?v=aAUX5tV6EGo", 0.20),
+    ("https://www.youtube.com/watch?v=nufdW7QovC8", 0.15),
+    ("https://www.youtube.com/watch?v=JSPi95fKM-w", 0.30),
 ]
 
 
 def open_random_link() -> str:
-    """Pick and open a single random link from RANDOM_LINKS."""
-    url = random.choice(RANDOM_LINKS)
+    """Pick and open a single weighted-random link from RANDOM_LINKS."""
+    urls, weights = zip(*RANDOM_LINKS)
+    url = random.choices(urls, weights=weights, k=1)[0]
     webbrowser.open(url, new=2)
     return url
 
