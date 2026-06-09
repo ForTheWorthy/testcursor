@@ -212,6 +212,39 @@ Use this checklist when starting a task in Cursor:
 - [ ] Ask Cursor to run focused checks.
 - [ ] Review the final diff before merging.
 
+## Appendix: LARPing as a Software Engineer Effectively
+
+If you want to "LARP" as a software engineer, treat it as practicing the rituals of the job rather than pretending to have credentials you do not have. The most convincing version is ethical: act like a careful beginner, communicate clearly, and build visible evidence of your work.
+
+Practical habits to copy:
+
+- Keep a small project in version control and make commits with clear messages.
+- Work from issues or TODOs so every change has a reason.
+- Make small, reviewable changes instead of giant mystery rewrites.
+- Write a short pull request description that explains what changed, why it changed, and how it was tested.
+- Run tests, linters, or type checks before saying a task is done.
+- Learn to read error messages carefully before asking for help.
+- Ask specific questions that include context, attempted fixes, and relevant logs.
+- Review your own diff before anyone else sees it.
+- Use software-engineering language accurately: say "I am learning React" instead of "I am a senior full-stack engineer" if that is the truth.
+
+A useful daily routine:
+
+1. Pick one small bug, feature, or documentation improvement.
+2. Create a branch with a descriptive name.
+3. Make the smallest working change.
+4. Run the relevant checks.
+5. Write a short summary of what changed and what you verified.
+6. Note one thing you learned and one thing you still do not understand.
+
+Outside references worth copying:
+
+- Google Engineering Practices recommends small changelists, good change descriptions, and thoughtful handling of reviewer comments: <https://google.github.io/eng-practices/review/developer/>
+- GitHub Docs explains that pull requests help teams discuss, review, test, and merge changes with clear context: <https://docs.github.com/pull-requests/collaborating-with-pull-requests/getting-started/helping-others-review-your-changes>
+- Martin Fowler describes continuous integration as frequently merging work into a shared codebase and verifying each integration with automated builds and tests: <https://www.martinfowler.com/articles/continuousIntegration.html>
+
+The secret is that effective software engineers do not just "look busy." They reduce uncertainty: they clarify requirements, make small changes, test those changes, communicate tradeoffs, and leave the codebase easier to understand.
+
 ## Appendix: Meeting Someone and Building a Healthy Relationship
 
 If your goal is to find a girlfriend, focus on becoming someone who can build a respectful, mutual relationship rather than trying to "win" someone over.
