@@ -23,6 +23,10 @@ RANDOM_LINKS: list[str | tuple[str, float]] = [
     ("https://www.youtube.com/watch?v=aAUX5tV6EGo", 0.20),
     ("https://www.youtube.com/watch?v=nufdW7QovC8", 0.15),
     ("https://www.youtube.com/watch?v=JSPi95fKM-w", 0.30),
+    ("https://www.youtube.com/watch?v=4JyKwszRO-Q", 0.10),
+    ("https://www.youtube.com/watch?v=h_rHj0mQGJo", 0.15),
+    ("https://www.youtube.com/watch?v=vUwwxAJsmiE", 0.20),
+    ("https://www.youtube.com/watch?v=4NWyrQ_Eb0Y", 0.4)
 ]
 
 
@@ -54,8 +58,8 @@ class SmashDetector:
 
     simultaneous_keys: int = 20
     simultaneous_window_seconds: float = 0.08
-    text_window_seconds: float = 2.0
-    min_smash_text_length: int = 8
+    text_window_seconds: float = 1.5
+    min_smash_text_length: int = 16
     cooldown_seconds: float = 5.0
     repeat_filter_seconds: float = 0.05
     min_unique_key_ratio: float = 0.4
@@ -205,25 +209,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--simultaneous-keys",
         type=int,
-        default=20,
+        default=25,
         help="Number of rapid key presses that count as a smash (default: 20).",
     )
     parser.add_argument(
         "--simultaneous-window-ms",
         type=float,
-        default=80.0,
+        default=8.0,
         help="Window for rapid key presses in milliseconds (default: 80).",
     )
     parser.add_argument(
         "--text-window-seconds",
         type=float,
-        default=2.0,
+        default=1.5,
         help="How far back to inspect typed text (default: 2.0).",
     )
     parser.add_argument(
         "--text-length",
         type=int,
-        default=8,
+        default=16,
         help="Minimum token length before gibberish checks (default: 8).",
     )
     parser.add_argument(
